@@ -3,7 +3,8 @@
  * โครงสร้างชีต: สร้างชีตแยกอัตโนมัติตามปีงบประมาณ เช่น
  *   DATA70รับ, DATA70ส่ง  (ปีงบประมาณ 2570)
  *   DATA71รับ, DATA71ส่ง  (ปีงบประมาณ 2571)
- * เรื่องร้องเรียนใช้ชีตเดียวตลอดคือ DATAร้องเรียน (เลขคุมกรอกเอง ไม่สร้างอัตโนมัติ)
+ * เรื่องร้องเรียนใช้ชีตเดียวตลอดคือ DATAร้องเรียน (เลขคุมกรอกเอง)
+ * และสามารถออกเลขหนังสือได้ โดยใช้เลขชุด 'ส่ง' ร่วมกับระบบเลขหนังสือปกติ
  * ปีงบประมาณ (พ.ศ.) เริ่มวันที่ 1 ตุลาคมของทุกปี และขึ้นเลขที่ 1 ใหม่ในแต่ละปี
  * (ยกเว้นค่าตั้งต้นที่กำหนดไว้ล่วงหน้าใน FISCAL_YEAR_NUMBER_OVERRIDES)
  */
@@ -58,6 +59,9 @@ const HEADERS_COMPLAINT = HEADERS.map(function (header) {
   return header === 'เลขที่หนังสือ' ? 'เลขคุม' : header;
 });
 
+// คอลัมน์เพิ่มเติมเฉพาะเรื่องร้องเรียน สำหรับเลขหนังสือที่ออกตอบ/ดำเนินการ
+const COMPLAINT_OUTGOING_NUMBER_HEADER = 'เลขที่หนังสือออก';
+
 /**
  * Google Apps Script Web API
  *
@@ -93,7 +97,8 @@ function doGet(e) {
           'processForm',
           'updateRecord',
           'cancelRecord',
-          'attachFile'
+          'attachFile',
+          'issueComplaintOutgoingNumber'
         ]
       };
     }
@@ -173,6 +178,9 @@ function routeApiAction_(action, payload) {
 
     case 'attachFile':
       return attachFile(payload);
+
+    case 'issueComplaintOutgoingNumber':
+      return issueComplaintOutgoingNumber(payload);
 
     default:
       throw new Error('ไม่รู้จัก API action: ' + action);
@@ -268,6 +276,7 @@ function processForm(formObject) {
     const sheet = getOrCreateSheet_(spreadsheet, sheetName, docType);
 
     let docNumber;
+    let outgoingNumber = '';
 
     if (docType === 'ร้องเรียน') {
       docNumber = String(formObject.controlNumber || '').trim();
@@ -306,6 +315,17 @@ function processForm(formObject) {
 
     const newRow = sheet.getLastRow();
 
+    // หากผู้ใช้เลือกให้ออกเลขหนังสือพร้อมบันทึกเรื่องร้องเรียน
+    if (docType === 'ร้องเรียน' && formObject.issueOutgoingNumber === true) {
+      outgoingNumber = generateDocumentNumber_(
+        getOrCreateSheet_(spreadsheet, getSheetNameForType_('ส่ง', fiscalYearBE), 'ส่ง'),
+        'ส่ง',
+        fiscalYearBE
+      );
+      ensureComplaintOutgoingColumn_(sheet);
+      sheet.getRange(newRow, 13).setValue(outgoingNumber);
+    }
+
     sheet
       .getRange(newRow, 1)
       .setNumberFormat('dd/MM/yyyy HH:mm:ss');
@@ -313,7 +333,8 @@ function processForm(formObject) {
     return {
       success: true,
       message: 'บันทึกรายการเรียบร้อยแล้ว',
-      documentNumber: docNumber
+      documentNumber: docNumber,
+      outgoingNumber: outgoingNumber
     };
   } catch (error) {
     throw new Error(getErrorText_(error));
@@ -351,7 +372,7 @@ function getHistory() {
 
       const lastRow = sheet.getLastRow();
       const columnCount = Math.max(
-        Math.min(sheet.getLastColumn(), 12),
+        Math.min(sheet.getLastColumn(), sheetName === SHEET_COMPLAINT_NAME ? 13 : 12),
         8
       );
 
@@ -395,6 +416,7 @@ function getHistory() {
           cancelledAt: row[9] || '',
           cancelReason: row[10] || '',
           fiscalYear: row[11] || '',
+          outgoingNumber: sheetName === SHEET_COMPLAINT_NAME ? (row[12] || '') : '',
           sheetName: sheetName,
           rowIndex: actualRow,
           canEdit: isCurrentSheet && status !== 'ยกเลิก',
@@ -720,6 +742,10 @@ function ensureStatusColumns_(sheet) {
     }
   });
 
+  if (sheet.getName() === SHEET_COMPLAINT_NAME) {
+    ensureComplaintOutgoingColumn_(sheet);
+  }
+
   const lastRow = sheet.getLastRow();
 
   if (lastRow > 1) {
@@ -740,6 +766,20 @@ function ensureStatusColumns_(sheet) {
   }
 
   formatHeader_(sheet);
+}
+
+/**
+ * เตรียมคอลัมน์เลขหนังสือออกสำหรับชีตร้องเรียน โดยไม่กระทบข้อมูลเดิม
+ */
+function ensureComplaintOutgoingColumn_(sheet) {
+  if (sheet.getName() !== SHEET_COMPLAINT_NAME) return;
+
+  const column = 13;
+  const current = String(sheet.getRange(1, column).getDisplayValue() || '').trim();
+
+  if (current !== COMPLAINT_OUTGOING_NUMBER_HEADER) {
+    sheet.getRange(1, column).setValue(COMPLAINT_OUTGOING_NUMBER_HEADER);
+  }
 }
 
 /**
@@ -782,6 +822,37 @@ function generateDocumentNumber_(sheet, docType, fiscalYearBE) {
         );
       }
     });
+  }
+
+  // เลขหนังสือออกของเรื่องร้องเรียนใช้ชุดเลขเดียวกับ 'ส่ง'
+  // จึงต้องนับเลขที่ถูกออกจากชีตร้องเรียนด้วย เพื่อไม่ให้เลขซ้ำ
+  if (docType === 'ส่ง') {
+    const complaintSheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName(SHEET_COMPLAINT_NAME);
+
+    if (complaintSheet) {
+      ensureComplaintOutgoingColumn_(complaintSheet);
+      const complaintLastRow = complaintSheet.getLastRow();
+
+      if (complaintLastRow >= 2) {
+        const outgoingNumbers = complaintSheet
+          .getRange(2, 13, complaintLastRow - 1, 1)
+          .getDisplayValues()
+          .flat();
+
+        outgoingNumbers.forEach(function (value) {
+          const text = String(value || '').trim();
+          const matched = text.match(/(\d+)\s*$/);
+
+          if (matched) {
+            maximumNumber = Math.max(
+              maximumNumber,
+              Number(matched[1])
+            );
+          }
+        });
+      }
+    }
   }
 
   const overrideMap = FISCAL_YEAR_NUMBER_OVERRIDES[docType];
@@ -862,6 +933,75 @@ function uploadFile_(
   const file = folder.createFile(blob);
 
   return file.getUrl();
+}
+
+/**
+ * ออกเลขหนังสือให้เรื่องร้องเรียน โดยใช้เลขชุด 'ส่ง' ของปีงบประมาณเดียวกัน
+ */
+function issueComplaintOutgoingNumber(dataObject) {
+  const lock = LockService.getScriptLock();
+
+  try {
+    lock.waitLock(30000);
+
+    const sheetName = String(dataObject.sheetName || '').trim();
+    const rowIndex = Number(dataObject.rowIndex);
+
+    if (sheetName !== SHEET_COMPLAINT_NAME) {
+      throw new Error('รายการนี้ไม่ใช่เรื่องร้องเรียน');
+    }
+
+    if (!Number.isInteger(rowIndex) || rowIndex < 2) {
+      throw new Error('ตำแหน่งรายการไม่ถูกต้อง');
+    }
+
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const complaintSheet = spreadsheet.getSheetByName(SHEET_COMPLAINT_NAME);
+
+    if (!complaintSheet || rowIndex > complaintSheet.getLastRow()) {
+      throw new Error('ไม่พบรายการร้องเรียนที่ต้องการออกเลข');
+    }
+
+    ensureStatusColumns_(complaintSheet);
+    ensureComplaintOutgoingColumn_(complaintSheet);
+
+    const status = String(complaintSheet.getRange(rowIndex, 9).getDisplayValue()).trim();
+    if (status === 'ยกเลิก') {
+      throw new Error('ไม่สามารถออกเลขให้รายการที่ยกเลิกแล้ว');
+    }
+
+    const currentNumber = String(complaintSheet.getRange(rowIndex, 13).getDisplayValue()).trim();
+    if (currentNumber) {
+      return {
+        success: true,
+        message: 'รายการนี้มีเลขหนังสือออกแล้ว',
+        documentNumber: currentNumber
+      };
+    }
+
+    const fiscalYearBE = Number(complaintSheet.getRange(rowIndex, 12).getValue());
+    if (!fiscalYearBE) {
+      throw new Error('ไม่พบปีงบประมาณของเรื่องร้องเรียน');
+    }
+
+    const sendSheetName = getSheetNameForType_('ส่ง', fiscalYearBE);
+    const sendSheet = getOrCreateSheet_(spreadsheet, sendSheetName, 'ส่ง');
+    const documentNumber = generateDocumentNumber_(sendSheet, 'ส่ง', fiscalYearBE);
+
+    complaintSheet.getRange(rowIndex, 13).setValue(documentNumber);
+
+    return {
+      success: true,
+      message: 'ออกเลขหนังสือเรียบร้อยแล้ว',
+      documentNumber: documentNumber
+    };
+  } catch (error) {
+    throw new Error(getErrorText_(error));
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (error) {}
+  }
 }
 
 /**

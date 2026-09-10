@@ -1922,7 +1922,7 @@
           <div class="card-heading">
             <h2 class="card-title">แจ้งเรื่องร้องเรียนใหม่</h2>
             <p class="card-description">
-              กรอกข้อมูลเรื่องร้องเรียน (เลขคุมกรอกเอง)
+              กรอกข้อมูลเรื่องร้องเรียน และสามารถออกเลขหนังสือได้
             </p>
           </div>
 
@@ -1941,6 +1941,21 @@
                 placeholder="ระบุเลขคุมเรื่องร้องเรียน"
                 required
               >
+            </div>
+
+            <div class="field">
+              <label for="cpIssueOutgoingNumber">เลขที่หนังสือออก</label>
+              <label style="display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer;">
+                <input
+                  type="checkbox"
+                  id="cpIssueOutgoingNumber"
+                  style="width:22px;height:22px;"
+                >
+                ออกเลขหนังสือพร้อมบันทึกเรื่องร้องเรียน
+              </label>
+              <div class="helper-text">
+                ระบบจะรันเลขต่อจากเลขหนังสือส่งของปีงบประมาณเดียวกัน
+              </div>
             </div>
 
             <div class="field">
@@ -2964,6 +2979,8 @@
           note: document.getElementById('cpNote').value.trim(),
           customFileName:
             document.getElementById('cpCustomFileName').value.trim(),
+          issueOutgoingNumber:
+            document.getElementById('cpIssueOutgoingNumber').checked,
           fileData: fileData,
           fileName: fileName
         };
@@ -3103,6 +3120,7 @@
         record.createdAt,
         record.type,
         record.documentNumber,
+        record.outgoingNumber,
         record.documentDate,
         record.subject,
         record.party,
@@ -3268,7 +3286,13 @@
             numberLabel +
             '"><div class="document-number">' +
             escapeHtml(record.documentNumber || '-') +
-            '</div><div class="subtext">ลงวันที่ ' +
+            '</div>' +
+            (record.type === 'ร้องเรียน'
+              ? '<div class="subtext" style="font-weight:700;">หนังสือออก: ' +
+                escapeHtml(record.outgoingNumber || 'ยังไม่ได้ออกเลข') +
+                '</div>'
+              : '') +
+            '<div class="subtext">ลงวันที่ ' +
             escapeHtml(record.documentDate || '-') +
             '</div><div class="subtext">ปีงบประมาณ ' +
             escapeHtml(record.fiscalYear || '-') +
@@ -3345,6 +3369,14 @@
           'onclick="openAttachmentModal(' +
           record.uid +
           ')">แนบไฟล์</button>';
+      }
+
+      if (record.type === 'ร้องเรียน' && record.canEdit && !record.outgoingNumber) {
+        actionsHtml +=
+          '<button type="button" class="btn btn-primary btn-small" ' +
+          'onclick="issueComplaintOutgoingNumber(' +
+          record.uid +
+          ')">ออกเลขหนังสือ</button>';
       }
 
       if (record.canCancel) {
@@ -3454,6 +3486,50 @@
         })
         .catch(function (error) {
           setButtonLoading(button, false, 'บันทึกการแก้ไข');
+          showToast(getErrorMessage(error), 'error');
+        });
+    }
+
+    function issueComplaintOutgoingNumber(uid) {
+      const record = recordsByUid[uid];
+
+      if (!record) {
+        showToast('ไม่พบรายการที่เลือก', 'error');
+        return;
+      }
+
+      if (record.type !== 'ร้องเรียน') {
+        showToast('รายการนี้ไม่ใช่เรื่องร้องเรียน', 'error');
+        return;
+      }
+
+      if (record.status === 'ยกเลิก' || !record.canEdit) {
+        showToast('รายการนี้ไม่สามารถออกเลขได้', 'error');
+        return;
+      }
+
+      if (record.outgoingNumber) {
+        showToast('รายการนี้มีเลขหนังสือออกแล้ว: ' + record.outgoingNumber, 'success');
+        return;
+      }
+
+      if (!confirm('ยืนยันออกเลขหนังสือให้เรื่องร้องเรียนนี้?\nระบบจะรันเลขต่อจากหนังสือส่งของปีงบประมาณ ' + (record.fiscalYear || '-') + '')) {
+        return;
+      }
+
+      apiRequest('issueComplaintOutgoingNumber', {
+        sheetName: record.sheetName,
+        rowIndex: Number(record.rowIndex)
+      })
+        .then(function (result) {
+          showToast(
+            (result && result.message ? result.message : 'ออกเลขหนังสือเรียบร้อยแล้ว') +
+            (result && result.documentNumber ? ' เลขที่ ' + result.documentNumber : ''),
+            'success'
+          );
+          loadHistory();
+        })
+        .catch(function (error) {
           showToast(getErrorMessage(error), 'error');
         });
     }
