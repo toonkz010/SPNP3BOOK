@@ -1,0 +1,3672 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+  >
+
+  <title>ระบบทะเบียนหนังสือ</title>
+
+  <style>
+    :root {
+      --primary: #176b5b;
+      --primary-dark: #105246;
+      --primary-light: #e8f4f0;
+      --primary-border: #bcd8cf;
+
+      --success: #277a50;
+      --success-light: #e6f4ec;
+
+      --danger: #b83d49;
+      --danger-dark: #96313b;
+      --danger-light: #fcebed;
+
+      --warning: #a66618;
+      --warning-light: #fff4dd;
+
+      --text: #17251f;
+      --text-soft: #3f5049;
+      --muted: #66756f;
+
+      --border: #d5dfda;
+      --surface: #ffffff;
+      --surface-soft: #f8fbf9;
+      --background: #edf3f0;
+
+      --shadow:
+        0 8px 28px rgba(24, 67, 53, 0.08);
+
+      --radius: 16px;
+      --radius-small: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(
+          circle at 0 0,
+          rgba(205, 232, 222, 0.7),
+          transparent 32%
+        ),
+        linear-gradient(
+          180deg,
+          #edf4f0 0%,
+          #f5f8f6 100%
+        );
+      font-family:
+        "Noto Sans Thai",
+        "Tahoma",
+        "Segoe UI",
+        system-ui,
+        sans-serif;
+      font-size: 15px;
+      font-weight: 450;
+      line-height: 1.65;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .menu-toggle {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.17);
+      border-radius: 12px;
+      font-size: 20px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .menu-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: none;
+      background: rgba(15, 32, 26, 0.5);
+    }
+
+    .menu-backdrop.show {
+      display: block;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      width: min(300px, 84vw);
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      box-shadow: 0 0 40px rgba(15, 32, 26, 0.28);
+      transform: translateX(-100%);
+      transition: transform 0.22s ease;
+    }
+
+    .side-menu.open {
+      transform: translateX(0);
+    }
+
+    .side-menu-header {
+      padding: 18px 18px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #ffffff;
+      background: linear-gradient(135deg, #105246, #187260);
+    }
+
+    .side-menu-header span {
+      font-size: 16px;
+      font-weight: 750;
+    }
+
+    .side-menu-close {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+    }
+
+    .menu-nav {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .menu-item {
+      width: 100%;
+      min-height: 52px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-soft);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .menu-item:hover {
+      background: var(--surface-soft);
+    }
+
+    .menu-item.active {
+      color: var(--primary);
+      background: var(--primary-light);
+      border-color: var(--primary-border);
+    }
+
+    .menu-item-icon {
+      font-size: 19px;
+    }
+
+    .view-hidden {
+      display: none !important;
+    }
+
+    .party-other-wrap {
+      margin-top: 8px;
+    }
+
+    .stat-value.complaint {
+      color: var(--warning);
+    }
+
+    .badge-complaint {
+      color: #a66618;
+      background: var(--warning-light);
+    }
+
+    .overview-card {
+      padding: 22px;
+    }
+
+    .recent-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .recent-item {
+      padding: 13px 15px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .recent-item-main {
+      min-width: 0;
+    }
+
+    .recent-item-title {
+      color: var(--text);
+      font-weight: 700;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    .recent-item-sub {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      color: #ffffff;
+      background:
+        linear-gradient(
+          135deg,
+          #105246,
+          #187260
+        );
+      box-shadow:
+        0 5px 20px rgba(16, 82, 70, 0.22);
+    }
+
+    .topbar-inner {
+      width: min(1380px, calc(100% - 32px));
+      min-height: 76px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 0;
+    }
+
+    .brand-icon {
+      width: 46px;
+      height: 46px;
+      flex: 0 0 46px;
+      display: grid;
+      place-items: center;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.17);
+      border-radius: 14px;
+      font-size: 23px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 750;
+      line-height: 1.35;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 12px;
+    }
+
+    .fiscal-year-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+      padding: 4px 10px;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .fiscal-year-badge strong {
+      font-weight: 900;
+    }
+
+    .container {
+      width: min(1380px, calc(100% - 32px));
+      margin: 24px auto 50px;
+    }
+
+    .stats {
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+
+    .stat-card {
+      min-width: 0;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-icon {
+      width: 46px;
+      height: 46px;
+      flex: 0 0 46px;
+      display: grid;
+      place-items: center;
+      background: var(--surface-soft);
+      border-radius: 13px;
+      font-size: 22px;
+    }
+
+    .stat-content {
+      min-width: 0;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      margin-top: 1px;
+      color: var(--text);
+      font-size: 27px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .stat-value.received {
+      color: #17659b;
+    }
+
+    .stat-value.sent {
+      color: var(--success);
+    }
+
+    .stat-value.cancelled {
+      color: var(--danger);
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 370px minmax(0, 1fr);
+      align-items: start;
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.97);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .form-card {
+      position: sticky;
+      top: 96px;
+      padding: 22px;
+    }
+
+    .history-card {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .card-heading {
+      margin-bottom: 18px;
+    }
+
+    .card-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 19px;
+      font-weight: 780;
+      line-height: 1.4;
+    }
+
+    .card-description {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 15px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .required {
+      color: var(--danger);
+    }
+
+    .control {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: #fcfefd;
+      border: 1px solid #c9d7d1;
+      border-radius: var(--radius-small);
+      outline: none;
+      font-size: 14px;
+      font-weight: 520;
+      transition:
+        border-color 0.18s,
+        box-shadow 0.18s,
+        background 0.18s;
+    }
+
+    .control:hover {
+      border-color: #aebfb8;
+    }
+
+    .control:focus {
+      background: #ffffff;
+      border-color: var(--primary);
+      box-shadow:
+        0 0 0 3px rgba(23, 107, 91, 0.13);
+    }
+
+    .control::placeholder {
+      color: #819089;
+      font-weight: 400;
+    }
+
+    textarea.control {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .file-box {
+      padding: 13px;
+      background: var(--surface-soft);
+      border: 1px dashed #b5c8c0;
+      border-radius: var(--radius-small);
+    }
+
+    .file-box input {
+      width: 100%;
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .file-detail {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .helper-text {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .btn {
+      min-height: 42px;
+      padding: 9px 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      color: var(--text);
+      background: #eef3f0;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-weight: 700;
+      line-height: 1.3;
+      text-decoration: none;
+      transition:
+        transform 0.18s,
+        background 0.18s,
+        box-shadow 0.18s;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background: var(--primary);
+      box-shadow:
+        0 5px 14px rgba(23, 107, 91, 0.19);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      color: #31433c;
+      background: #edf2ef;
+      border-color: #d8e1dd;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #e2ebe7;
+    }
+
+    .btn-danger {
+      color: #ffffff;
+      background: var(--danger);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: var(--danger-dark);
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    .btn-small {
+      min-height: 34px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .history-header {
+      padding: 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .history-heading-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .toolbar {
+      margin-top: 17px;
+      display: grid;
+      grid-template-columns:
+        minmax(240px, 1fr)
+        145px
+        145px
+        auto;
+      gap: 9px;
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-box .control {
+      padding-left: 38px;
+    }
+
+    .search-icon {
+      position: absolute;
+      top: 50%;
+      left: 13px;
+      color: var(--muted);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .result-summary {
+      padding: 10px 18px;
+      color: var(--muted);
+      background: #f8fbf9;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1050px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid #e1e8e4;
+    }
+
+    th {
+      color: #384a43;
+      background: #edf4f1;
+      font-size: 12px;
+      font-weight: 780;
+      white-space: nowrap;
+    }
+
+    td {
+      color: #273730;
+      font-size: 13px;
+      font-weight: 480;
+    }
+
+    tbody tr {
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover {
+      background: #f8fbfa;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .document-number {
+      color: var(--text);
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .subject {
+      max-width: 290px;
+      color: var(--text);
+      font-weight: 680;
+      line-height: 1.55;
+    }
+
+    .subtext {
+      max-width: 290px;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .badge-received {
+      color: #155d89;
+      background: #e2f1fa;
+    }
+
+    .badge-sent {
+      color: #236b48;
+      background: var(--success-light);
+    }
+
+    .badge-old {
+      color: #68528d;
+      background: #f0eafb;
+    }
+
+    .badge-active {
+      color: #276349;
+      background: #e8f4ed;
+    }
+
+    .badge-cancelled {
+      color: #a23540;
+      background: var(--danger-light);
+    }
+
+    .cancelled-row {
+      background: #fff7f7;
+    }
+
+    .cancelled-row:hover {
+      background: #fff1f2;
+    }
+
+    .cancelled-row .subject,
+    .cancelled-row .document-number {
+      color: #85585c;
+      text-decoration: line-through;
+    }
+
+    .cancel-detail {
+      max-width: 240px;
+      margin-top: 6px;
+      color: #9e4149;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .file-link {
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .file-link:hover {
+      text-decoration: underline;
+    }
+
+    .no-file {
+      color: #8a9892;
+      font-size: 12px;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .loading-state,
+    .empty-state {
+      padding: 65px 20px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .state-icon {
+      margin-bottom: 8px;
+      font-size: 38px;
+    }
+
+    .state-title {
+      color: var(--text-soft);
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 12px;
+      border: 3px solid #d7ebe4;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      padding: 20px;
+      display: none;
+      place-items: center;
+      background: rgba(20, 39, 32, 0.58);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal.show {
+      display: grid;
+    }
+
+    .modal-card {
+      width: min(540px, 100%);
+      max-height: calc(100vh - 40px);
+      padding: 22px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 18px;
+      box-shadow:
+        0 28px 80px rgba(15, 43, 34, 0.25);
+    }
+
+    .modal-heading {
+      margin-bottom: 18px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .modal-actions {
+      margin-top: 19px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+    }
+
+    .warning-box {
+      margin-bottom: 16px;
+      padding: 13px 14px;
+      color: #744d19;
+      background: var(--warning-light);
+      border: 1px solid #efd9a7;
+      border-radius: 11px;
+      font-size: 13px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 300;
+      width: min(380px, calc(100% - 40px));
+      padding: 13px 16px;
+      color: #ffffff;
+      background: #243a31;
+      border-radius: 12px;
+      box-shadow:
+        0 14px 38px rgba(16, 46, 36, 0.24);
+      font-size: 13px;
+      font-weight: 650;
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+      transition:
+        opacity 0.22s,
+        transform 0.22s;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.success {
+      background: #24704a;
+    }
+
+    .toast.error {
+      background: #a73540;
+    }
+
+    @media (max-width: 1100px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .form-card {
+        position: static;
+      }
+    }
+
+    @media (max-width: 840px) {
+      html,
+      body {
+        overflow-x: hidden;
+      }
+
+      body {
+        font-size: 16px;
+      }
+
+      .topbar-inner,
+      .container {
+        width: min(100% - 20px, 1380px);
+      }
+
+      .topbar-inner {
+        min-height: 68px;
+      }
+
+      .brand-icon {
+        width: 40px;
+        height: 40px;
+        flex-basis: 40px;
+      }
+
+      .brand h1 {
+        font-size: 17px;
+      }
+
+      .brand p {
+        display: none;
+      }
+
+      .top-refresh-text {
+        display: none;
+      }
+
+      .container {
+        margin-top: 14px;
+      }
+
+      .control {
+        min-height: 48px;
+        font-size: 16px;
+      }
+
+      .btn {
+        min-height: 48px;
+        font-size: 15px;
+      }
+
+      .btn-small {
+        min-height: 40px;
+        font-size: 13px;
+      }
+
+      .menu-item {
+        font-size: 16px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 9px;
+      }
+
+      .stat-card {
+        padding: 13px;
+        gap: 10px;
+      }
+
+      .stat-icon {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+        font-size: 18px;
+      }
+
+      .stat-value {
+        font-size: 22px;
+      }
+
+      .stat-label {
+        font-size: 11px;
+      }
+
+      .form-card,
+      .history-header {
+        padding: 17px;
+      }
+
+      .history-heading-row {
+        display: block;
+      }
+
+      .history-heading-row .btn {
+        margin-top: 10px;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .history-card {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        overflow: visible;
+      }
+
+      .history-header {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .result-summary {
+        margin-top: 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      .table-wrap {
+        margin-top: 10px;
+        overflow: visible;
+      }
+
+      table,
+      thead,
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tbody {
+        display: grid;
+        gap: 11px;
+      }
+
+      tbody tr {
+        padding: 15px;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      tbody tr.cancelled-row {
+        background: #fff7f7;
+        border-color: #efcdd1;
+      }
+
+      td {
+        padding: 6px 0;
+        border: 0;
+      }
+
+      td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 2px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 760;
+      }
+
+      .subject,
+      .subtext,
+      .cancel-detail {
+        max-width: none;
+      }
+
+      .action-group {
+        margin-top: 5px;
+      }
+
+      .action-group .btn {
+        flex: 1;
+      }
+
+      .modal {
+        padding: 12px;
+      }
+
+      .modal-card {
+        padding: 18px;
+      }
+
+      .modal-actions {
+        flex-direction: column-reverse;
+      }
+
+      .modal-actions .btn {
+        width: 100%;
+      }
+    }
+
+    /* ปรับพิเศษสำหรับมือถือ/iPhone: กระทัดรัด แต่ตัวอักษรและปุ่มอ่านง่าย */
+    @media (max-width: 840px) {
+      html, body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      .topbar-inner,
+      .container {
+        width: calc(100% - 12px);
+        max-width: none;
+      }
+
+      .topbar-inner {
+        min-height: 64px;
+        gap: 8px;
+      }
+
+      .topbar-left, .brand { gap: 8px; }
+
+      .menu-toggle {
+        width: 40px; height: 40px; flex-basis: 40px; font-size: 19px;
+      }
+
+      .brand-icon {
+        width: 38px; height: 38px; flex-basis: 38px; font-size: 19px;
+      }
+
+      .brand h1 { font-size: 17px; line-height: 1.2; white-space: nowrap; }
+      .brand p { display: none; }
+
+      .fiscal-year-badge {
+        margin-top: 3px; padding: 3px 8px; font-size: 12px;
+      }
+
+      .container { margin-top: 10px; margin-bottom: 24px; }
+
+      .control {
+        min-height: 50px;
+        padding: 11px 12px;
+        font-size: 17px;
+        border-radius: 11px;
+      }
+
+      .btn {
+        min-height: 48px;
+        padding: 9px 13px;
+        font-size: 16px;
+      }
+
+      .btn-small { min-height: 40px; font-size: 14px; }
+      .menu-item { font-size: 17px; }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 7px;
+        margin-bottom: 12px;
+      }
+
+      .stat-card {
+        padding: 11px 10px;
+        gap: 8px;
+        border-radius: 12px;
+      }
+
+      .stat-icon {
+        width: 36px; height: 36px; flex-basis: 36px; font-size: 17px;
+      }
+
+      .stat-value { font-size: 23px; line-height: 1.15; }
+      .stat-label { font-size: 12px; }
+
+      .form-card, .history-header { padding: 14px; }
+      .card-title { font-size: 19px; }
+      .card-description { font-size: 13px; }
+
+      .toolbar { grid-template-columns: 1fr; gap: 8px; }
+      .result-summary { margin-top: 8px; padding: 9px 12px; font-size: 12px; }
+      .table-wrap { margin-top: 8px; overflow: visible; }
+
+      table, thead, tbody, tr, td {
+        display: block; width: 100%; min-width: 0;
+      }
+
+      thead { display: none; }
+      tbody { display: grid; gap: 8px; }
+
+      tbody tr {
+        padding: 12px 13px;
+        border-radius: 13px;
+      }
+
+      td {
+        padding: 5px 0;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      td::before {
+        margin-bottom: 1px;
+        font-size: 11px;
+      }
+
+      .document-number { font-size: 18px; }
+      .subject { font-size: 17px; line-height: 1.5; }
+      .subtext, .cancel-detail { font-size: 13px; }
+
+      .action-group { margin-top: 4px; gap: 7px; }
+      .action-group .btn { flex: 1; }
+
+      .modal { padding: 8px; }
+      .modal-card {
+        width: 100%;
+        padding: 16px;
+        max-height: calc(100vh - 16px);
+        border-radius: 16px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-card {
+        justify-content: flex-start;
+      }
+    }
+
+    /* iPhone: อ่านง่าย ตัวใหญ่ และพอดีกับหน้าจอ โดยไม่ต้องซูม */
+    @media screen and (max-width: 600px) {
+      html {
+        width: 100%;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      body {
+        width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+
+      .topbar-inner,
+      .container {
+        width: calc(100% - 16px);
+        max-width: 600px;
+      }
+
+      .topbar-inner {
+        min-height: 78px;
+        gap: 10px;
+      }
+
+      .topbar-left {
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .menu-toggle {
+        width: 46px;
+        height: 46px;
+        flex-basis: 46px;
+        border-radius: 12px;
+        font-size: 22px;
+      }
+
+      .brand {
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .brand-icon {
+        width: 46px;
+        height: 46px;
+        flex-basis: 46px;
+        border-radius: 13px;
+        font-size: 22px;
+      }
+
+      .brand h1 {
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+
+      .fiscal-year-badge {
+        margin-top: 5px;
+        padding: 4px 10px;
+        font-size: 14px;
+        font-weight: 800;
+        border-radius: 999px;
+      }
+
+      .top-refresh-text {
+        display: none;
+      }
+
+      .topbar .btn-small {
+        min-width: 48px;
+        min-height: 44px;
+        padding: 8px 10px;
+        font-size: 16px;
+      }
+
+      .container {
+        margin-top: 12px;
+        margin-bottom: 28px;
+      }
+
+      /* สถิติ: 2 คอลัมน์ แต่ขนาดใหญ่ขึ้น */
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .stat-card {
+        min-height: 88px;
+        padding: 14px 12px;
+        gap: 10px;
+        border-radius: 15px;
+      }
+
+      .stat-icon {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+        border-radius: 12px;
+        font-size: 21px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        line-height: 1.25;
+        font-weight: 700;
+      }
+
+      .stat-value {
+        margin-top: 2px;
+        font-size: 30px;
+        line-height: 1.05;
+        font-weight: 850;
+      }
+
+      .overview-card {
+        padding: 18px;
+        border-radius: 16px;
+      }
+
+      .card-title {
+        font-size: 21px;
+      }
+
+      .card-description {
+        font-size: 14px;
+      }
+
+      .recent-item-title {
+        font-size: 15px;
+      }
+
+      .recent-item-sub {
+        font-size: 13px;
+      }
+
+      .form-card,
+      .history-header {
+        padding: 18px;
+      }
+
+      .control {
+        min-height: 52px;
+        padding: 12px 13px;
+        font-size: 17px;
+      }
+
+      .btn {
+        min-height: 50px;
+        padding: 10px 14px;
+        font-size: 17px;
+      }
+
+      .btn-small {
+        min-height: 44px;
+        font-size: 15px;
+      }
+
+      .menu-item {
+        min-height: 54px;
+        font-size: 17px;
+      }
+
+      td {
+        padding: 6px 0;
+        font-size: 17px;
+      }
+
+      td::before {
+        margin-bottom: 2px;
+        font-size: 12px;
+      }
+
+      .document-number {
+        font-size: 19px;
+      }
+
+      .subject {
+        font-size: 18px;
+        line-height: 1.55;
+      }
+
+      .subtext,
+      .cancel-detail {
+        font-size: 14px;
+      }
+    }
+
+    @media screen and (max-width: 420px) {
+      .topbar-inner,
+      .container {
+        width: calc(100% - 14px);
+      }
+
+      .brand h1 {
+        font-size: 19px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .stat-card {
+        min-height: 84px;
+        padding: 12px 10px;
+      }
+
+      .stat-icon {
+        width: 40px;
+        height: 40px;
+        flex-basis: 40px;
+        font-size: 19px;
+      }
+
+      .stat-label {
+        font-size: 13px;
+      }
+
+      .stat-value {
+        font-size: 28px;
+      }
+    }
+
+
+    /* ปรับมือถือรอบสุดท้าย: เน้นอ่านง่าย ไม่ต้องซูม */
+    @media screen and (max-width: 600px) {
+      body { font-size: 20px; line-height: 1.62; }
+      .topbar-inner, .container { width: calc(100% - 10px); }
+      .topbar-inner { min-height: 92px; }
+      .menu-toggle { width: 52px; height: 52px; flex-basis: 52px; font-size: 25px; }
+      .brand-icon { width: 52px; height: 52px; flex-basis: 52px; font-size: 25px; }
+      .brand h1 { font-size: 24px; }
+      .fiscal-year-badge { font-size: 17px; padding: 6px 12px; }
+      .topbar .btn-small { min-width: 54px; min-height: 52px; font-size: 19px; }
+      .stats { gap: 9px; margin-bottom: 16px; }
+      .stat-card { min-height: 108px; padding: 16px 13px; border-radius: 17px; }
+      .stat-icon { width: 50px; height: 50px; flex-basis: 50px; font-size: 24px; }
+      .stat-label { font-size: 15.5px; }
+      .stat-value { font-size: 38px; }
+      .overview-card, .form-card, .history-header { padding: 21px; }
+      .card-title { font-size: 25px; }
+      .card-description { font-size: 16px; }
+      .control { min-height: 58px; font-size: 20px; padding: 14px 15px; }
+      textarea.control { min-height: 120px; }
+      .btn { min-height: 56px; font-size: 20px; }
+      .btn-small { min-height: 50px; font-size: 18px; }
+      .field label { font-size: 17px; }
+      .helper-text, .file-detail { font-size: 15px; }
+      td { font-size: 20px; }
+      td::before { font-size: 14px; }
+      .document-number { font-size: 23px; }
+      .subject { font-size: 21px; }
+      .subtext, .cancel-detail { font-size: 16px; }
+      .modal-card { padding: 22px; }
+    }
+    @media screen and (max-width: 420px) {
+      .brand h1 { font-size: 22px; }
+      .stat-value { font-size: 35px; }
+      .stat-card { padding: 15px 11px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <button
+          type="button"
+          class="btn menu-toggle"
+          onclick="toggleMenu()"
+          aria-label="เปิดเมนู"
+        >
+          ☰
+        </button>
+
+        <div class="brand">
+          <div class="brand-icon">📄</div>
+
+          <div>
+            <h1 id="pageTitle">ระบบทะเบียนหนังสือ</h1>
+            <p id="pageSubtitle">จัดเก็บ ค้นหา แก้ไข และยกเลิกหนังสือรับ–ส่ง</p>
+            <div id="fiscalYearBadge" class="fiscal-year-badge">📅 ปีงบประมาณ <strong id="fiscalYearText">2569</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-secondary btn-small"
+        onclick="loadHistory()"
+      >
+        ↻
+        <span class="top-refresh-text">รีเฟรชข้อมูล</span>
+      </button>
+    </div>
+  </header>
+
+  <div
+    id="menuBackdrop"
+    class="menu-backdrop"
+    onclick="closeMenu()"
+  ></div>
+
+  <nav id="sideMenu" class="side-menu">
+    <div class="side-menu-header">
+      <span>เมนู</span>
+
+      <button
+        type="button"
+        class="side-menu-close"
+        onclick="closeMenu()"
+        aria-label="ปิดเมนู"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="menu-nav">
+      <button
+        type="button"
+        class="menu-item"
+        data-view="overview"
+        onclick="switchView('overview')"
+      >
+        <span class="menu-item-icon">📊</span>
+        ภาพรวม
+      </button>
+
+      <button
+        type="button"
+        class="menu-item"
+        data-view="sendreceive"
+        onclick="switchView('sendreceive')"
+      >
+        <span class="menu-item-icon">📑</span>
+        หนังสือรับ–ส่ง
+      </button>
+
+      <button
+        type="button"
+        class="menu-item"
+        data-view="complaint"
+        onclick="switchView('complaint')"
+      >
+        <span class="menu-item-icon">📢</span>
+        เรื่องร้องเรียน
+      </button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section id="view-overview" class="view">
+      <section class="stats">
+        <article class="stat-card">
+          <div class="stat-icon">🗂️</div>
+          <div class="stat-content">
+            <div class="stat-label">รายการทั้งหมด</div>
+            <div class="stat-value" id="totalCount">0</div>
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-icon">📥</div>
+          <div class="stat-content">
+            <div class="stat-label">หนังสือรับ</div>
+            <div
+              class="stat-value received"
+              id="receivedCount"
+            >
+              0
+            </div>
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-icon">📤</div>
+          <div class="stat-content">
+            <div class="stat-label">หนังสือส่ง</div>
+            <div
+              class="stat-value sent"
+              id="sentCount"
+            >
+              0
+            </div>
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-icon">📢</div>
+          <div class="stat-content">
+            <div class="stat-label">เรื่องร้องเรียน</div>
+            <div
+              class="stat-value complaint"
+              id="complaintCount"
+            >
+              0
+            </div>
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-icon">🚫</div>
+          <div class="stat-content">
+            <div class="stat-label">ยกเลิกแล้ว</div>
+            <div
+              class="stat-value cancelled"
+              id="cancelledCount"
+            >
+              0
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="card overview-card">
+        <div class="card-heading">
+          <h2 class="card-title">รายการล่าสุด</h2>
+          <p class="card-description">
+            10 รายการล่าสุดจากทุกประเภท (รับ ส่ง และร้องเรียน)
+          </p>
+        </div>
+
+        <div id="recentList" class="recent-list">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            กำลังโหลดข้อมูล...
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section id="view-sendreceive" class="view view-hidden">
+      <section class="main-layout">
+      <aside class="card form-card">
+        <div class="card-heading">
+          <h2 class="card-title">เพิ่มรายการใหม่</h2>
+          <p class="card-description">
+            กรอกข้อมูลหนังสือรับหรือหนังสือส่ง
+          </p>
+        </div>
+
+        <form id="recordForm" class="form-grid">
+          <div class="field">
+            <label for="docType">
+              ประเภทหนังสือ
+              <span class="required">*</span>
+            </label>
+
+            <select
+              id="docType"
+              class="control"
+              required
+            >
+              <option value="รับ">หนังสือรับ</option>
+              <option value="ส่ง">หนังสือส่ง</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="docDate">
+              ลงวันที่
+              <span class="required">*</span>
+            </label>
+
+            <input
+              type="date"
+              id="docDate"
+              class="control"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="subject">
+              เรื่อง
+              <span class="required">*</span>
+            </label>
+
+            <textarea
+              id="subject"
+              class="control"
+              maxlength="1000"
+              placeholder="ระบุชื่อเรื่องหนังสือ"
+              required
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label for="party">
+              หน่วยงาน / ภ.จว.
+              <span class="required">*</span>
+            </label>
+
+            <select
+              id="party"
+              class="control"
+              required
+            ></select>
+
+            <div
+              class="party-other-wrap view-hidden"
+              id="partyOtherWrap"
+            >
+              <input
+                type="text"
+                id="partyOther"
+                class="control"
+                maxlength="500"
+                placeholder="ระบุชื่อหน่วยงาน/บุคคล"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="note">หมายเหตุ</label>
+
+            <textarea
+              id="note"
+              class="control"
+              maxlength="1000"
+              placeholder="รายละเอียดเพิ่มเติม หากมี"
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label for="customFileName">
+              ชื่อไฟล์ที่ต้องการ
+            </label>
+
+            <input
+              type="text"
+              id="customFileName"
+              class="control"
+              maxlength="150"
+              placeholder="ไม่ต้องใส่นามสกุลไฟล์"
+            >
+          </div>
+
+          <div class="field">
+            <label for="attachment">ไฟล์แนบ</label>
+
+            <div class="file-box">
+              <input
+                type="file"
+                id="attachment"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+              >
+
+              <div
+                class="file-detail"
+                id="selectedFile"
+              >
+                ยังไม่ได้เลือกไฟล์
+              </div>
+            </div>
+
+            <div class="helper-text">
+              รองรับ PDF, Word, Excel และรูปภาพ ขนาดไม่เกิน 25 MB
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            id="submitButton"
+            class="btn btn-primary btn-block"
+          >
+            บันทึกรายการ
+          </button>
+        </form>
+      </aside>
+
+      <section class="card history-card">
+        <div class="history-header">
+          <div class="history-heading-row">
+            <div>
+              <h2 class="card-title">ประวัติรายการ</h2>
+              <p class="card-description">
+                ค้นหา แก้ไข หรือตรวจสอบรายการที่ยกเลิก
+              </p>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-secondary btn-small"
+              onclick="clearSendReceiveFilters()"
+            >
+              ล้างตัวกรอง
+            </button>
+          </div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+
+              <input
+                type="search"
+                id="srSearchInput"
+                class="control"
+                placeholder="ค้นหาเลขที่ เรื่อง หรือหน่วยงาน"
+              >
+            </div>
+
+            <select
+              id="srTypeFilter"
+              class="control"
+            >
+              <option value="">ทุกประเภท</option>
+              <option value="รับ">หนังสือรับ</option>
+              <option value="ส่ง">หนังสือส่ง</option>
+              <option value="ข้อมูลเดิม">ข้อมูลเดิม</option>
+            </select>
+
+            <select
+              id="srStatusFilter"
+              class="control"
+            >
+              <option value="">ทุกสถานะ</option>
+              <option value="ใช้งาน">ใช้งาน</option>
+              <option value="ยกเลิก">ยกเลิกแล้ว</option>
+            </select>
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="loadHistory()"
+            >
+              ↻ รีเฟรช
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="srResultSummary"
+          class="result-summary"
+        >
+          กำลังเตรียมข้อมูล
+        </div>
+
+        <div id="srHistoryContent">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            กำลังโหลดข้อมูล...
+          </div>
+        </div>
+      </section>
+      </section>
+    </section>
+
+    <section id="view-complaint" class="view view-hidden">
+      <section class="main-layout">
+        <aside class="card form-card">
+          <div class="card-heading">
+            <h2 class="card-title">แจ้งเรื่องร้องเรียนใหม่</h2>
+            <p class="card-description">
+              กรอกข้อมูลเรื่องร้องเรียน (เลขคุมกรอกเอง)
+            </p>
+          </div>
+
+          <form id="complaintForm" class="form-grid">
+            <div class="field">
+              <label for="cpControlNumber">
+                เลขคุม
+                <span class="required">*</span>
+              </label>
+
+              <input
+                type="text"
+                id="cpControlNumber"
+                class="control"
+                maxlength="100"
+                placeholder="ระบุเลขคุมเรื่องร้องเรียน"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="cpDocDate">
+                ลงวันที่
+                <span class="required">*</span>
+              </label>
+
+              <input
+                type="date"
+                id="cpDocDate"
+                class="control"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="cpSubject">
+                เรื่อง
+                <span class="required">*</span>
+              </label>
+
+              <textarea
+                id="cpSubject"
+                class="control"
+                maxlength="1000"
+                placeholder="ระบุเรื่องร้องเรียน"
+                required
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <label for="cpParty">
+                หน่วยงาน / ภ.จว.
+                <span class="required">*</span>
+              </label>
+
+              <select
+                id="cpParty"
+                class="control"
+                required
+              ></select>
+
+              <div
+                class="party-other-wrap view-hidden"
+                id="cpPartyOtherWrap"
+              >
+                <input
+                  type="text"
+                  id="cpPartyOther"
+                  class="control"
+                  maxlength="500"
+                  placeholder="ระบุชื่อหน่วยงาน/บุคคล"
+                >
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="cpNote">หมายเหตุ</label>
+
+              <textarea
+                id="cpNote"
+                class="control"
+                maxlength="1000"
+                placeholder="รายละเอียดเพิ่มเติม หากมี"
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <label for="cpCustomFileName">
+                ชื่อไฟล์ที่ต้องการ
+              </label>
+
+              <input
+                type="text"
+                id="cpCustomFileName"
+                class="control"
+                maxlength="150"
+                placeholder="ไม่ต้องใส่นามสกุลไฟล์"
+              >
+            </div>
+
+            <div class="field">
+              <label for="cpAttachment">ไฟล์แนบ</label>
+
+              <div class="file-box">
+                <input
+                  type="file"
+                  id="cpAttachment"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                >
+
+                <div
+                  class="file-detail"
+                  id="cpSelectedFile"
+                >
+                  ยังไม่ได้เลือกไฟล์
+                </div>
+              </div>
+
+              <div class="helper-text">
+                รองรับ PDF, Word, Excel และรูปภาพ ขนาดไม่เกิน 25 MB
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              id="cpSubmitButton"
+              class="btn btn-primary btn-block"
+            >
+              บันทึกเรื่องร้องเรียน
+            </button>
+          </form>
+        </aside>
+
+        <section class="card history-card">
+          <div class="history-header">
+            <div class="history-heading-row">
+              <div>
+                <h2 class="card-title">ประวัติเรื่องร้องเรียน</h2>
+                <p class="card-description">
+                  ค้นหา แก้ไข หรือตรวจสอบรายการที่ยกเลิก
+                </p>
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-secondary btn-small"
+                onclick="clearComplaintFilters()"
+              >
+                ล้างตัวกรอง
+              </button>
+            </div>
+
+            <div class="toolbar">
+              <div class="search-box">
+                <span class="search-icon">⌕</span>
+
+                <input
+                  type="search"
+                  id="cpSearchInput"
+                  class="control"
+                  placeholder="ค้นหาเลขคุม เรื่อง หรือหน่วยงาน"
+                >
+              </div>
+
+              <select
+                id="cpStatusFilter"
+                class="control"
+              >
+                <option value="">ทุกสถานะ</option>
+                <option value="ใช้งาน">ใช้งาน</option>
+                <option value="ยกเลิก">ยกเลิกแล้ว</option>
+              </select>
+
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="loadHistory()"
+              >
+                ↻ รีเฟรช
+              </button>
+            </div>
+          </div>
+
+          <div
+            id="cpResultSummary"
+            class="result-summary"
+          >
+            กำลังเตรียมข้อมูล
+          </div>
+
+          <div id="cpHistoryContent">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              กำลังโหลดข้อมูล...
+            </div>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <!-- Modal แก้ไข -->
+  <div
+    id="editModal"
+    class="modal"
+    onclick="handleModalBackdrop(event, 'editModal')"
+  >
+    <div class="modal-card">
+      <div class="modal-heading">
+        <div>
+          <h2 class="card-title">แก้ไขรายการ</h2>
+          <p
+            class="card-description"
+            id="editDocumentDetail"
+          ></p>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-secondary btn-small"
+          onclick="closeModal('editModal')"
+        >
+          ✕
+        </button>
+      </div>
+
+      <form id="editForm" class="form-grid">
+        <input type="hidden" id="editSheetName">
+        <input type="hidden" id="editRowIndex">
+
+        <div class="field">
+          <label for="editSubject">
+            เรื่อง
+            <span class="required">*</span>
+          </label>
+
+          <textarea
+            id="editSubject"
+            class="control"
+            maxlength="1000"
+            required
+          ></textarea>
+        </div>
+
+        <div class="field">
+          <label for="editParty">
+            หน่วยงาน / ภ.จว.
+            <span class="required">*</span>
+          </label>
+
+          <select
+            id="editParty"
+            class="control"
+            required
+          ></select>
+
+          <div
+            class="party-other-wrap view-hidden"
+            id="editPartyOtherWrap"
+          >
+            <input
+              type="text"
+              id="editPartyOther"
+              class="control"
+              maxlength="500"
+              placeholder="ระบุชื่อหน่วยงาน/บุคคล"
+            >
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="editNote">หมายเหตุ</label>
+
+          <textarea
+            id="editNote"
+            class="control"
+            maxlength="1000"
+          ></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="closeModal('editModal')"
+          >
+            ยกเลิก
+          </button>
+
+          <button
+            type="submit"
+            id="editButton"
+            class="btn btn-primary"
+          >
+            บันทึกการแก้ไข
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal แนบไฟล์ภายหลัง -->
+  <div id="attachmentModal" class="modal" onclick="handleModalBackdrop(event, 'attachmentModal')">
+    <div class="modal-card">
+      <div class="modal-heading">
+        <div>
+          <h2 class="card-title">แนบไฟล์เพิ่มเติม</h2>
+          <p class="card-description" id="attachmentDocumentDetail"></p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-small" onclick="closeModal('attachmentModal')">✕</button>
+      </div>
+      <form id="attachmentForm" class="form-grid">
+        <input type="hidden" id="attachmentSheetName">
+        <input type="hidden" id="attachmentRowIndex">
+        <div class="field">
+          <label for="postAttachmentFile">ไฟล์แนบ</label>
+          <div class="file-box">
+            <input type="file" id="postAttachmentFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" required>
+            <div class="file-detail" id="postSelectedFile">ยังไม่ได้เลือกไฟล์</div>
+          </div>
+          <div class="helper-text">รองรับ PDF, Word, Excel และรูปภาพ ขนาดไม่เกิน 25 MB</div>
+        </div>
+        <div class="field">
+          <label for="postAttachmentName">ชื่อไฟล์ที่ต้องการ</label>
+          <input type="text" id="postAttachmentName" class="control" maxlength="150" placeholder="ไม่ต้องใส่นามสกุลไฟล์">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('attachmentModal')">ยกเลิก</button>
+          <button type="submit" id="attachmentButton" class="btn btn-primary">บันทึกไฟล์</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal ยกเลิกหนังสือ -->
+  <div
+    id="cancelModal"
+    class="modal"
+    onclick="handleModalBackdrop(event, 'cancelModal')"
+  >
+    <div class="modal-card">
+      <div class="modal-heading">
+        <div>
+          <h2 class="card-title">ยกเลิกหนังสือ</h2>
+          <p
+            class="card-description"
+            id="cancelDocumentDetail"
+          ></p>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-secondary btn-small"
+          onclick="closeModal('cancelModal')"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="warning-box">
+        รายการจะไม่ถูกลบออกจากระบบ แต่จะเปลี่ยนสถานะเป็น
+        “ยกเลิก” และเก็บประวัติไว้ตรวจสอบย้อนหลัง
+      </div>
+
+      <form id="cancelForm" class="form-grid">
+        <input type="hidden" id="cancelSheetName">
+        <input type="hidden" id="cancelRowIndex">
+
+        <div class="field">
+          <label for="cancelReason">
+            เหตุผลการยกเลิก
+            <span class="required">*</span>
+          </label>
+
+          <textarea
+            id="cancelReason"
+            class="control"
+            maxlength="500"
+            placeholder="กรุณาระบุเหตุผลในการยกเลิก"
+            required
+          ></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="closeModal('cancelModal')"
+          >
+            กลับ
+          </button>
+
+          <button
+            type="submit"
+            id="cancelButton"
+            class="btn btn-danger"
+          >
+            ยืนยันการยกเลิก
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const AGENCY_OPTIONS = [
+      'ชัยภูมิ',
+      'นครราชสีมา',
+      'บุรีรัมย์',
+      'ยโสธร',
+      'ศรีสะเกษ',
+      'สุรินทร์',
+      'อำนาจเจริญ',
+      'อุบลราชธานี',
+      'ศปน.ตร.',
+      'ศปน.ภ.3'
+    ];
+
+    const OTHER_VALUE = '__other__';
+
+    let allRecords = [];
+    let recordsByUid = {};
+
+    let srAllRecords = [];
+    let srVisibleRecords = [];
+
+    let cpAllRecords = [];
+    let cpVisibleRecords = [];
+
+    let currentView = 'overview';
+
+    // ============================================================
+    // GitHub Pages -> Google Apps Script API
+    // ใส่ URL /exec ของ Web App ที่ได้จาก Apps Script ตรงนี้
+    // ตัวอย่าง: https://script.google.com/macros/s/xxxxxxxx/exec
+    // ============================================================
+    const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+    function apiRequest(action, payload) {
+      if (!API_URL || API_URL.indexOf('PASTE_YOUR_') === 0) {
+        return Promise.reject(new Error('ยังไม่ได้ตั้งค่า API_URL ใน index.html'));
+      }
+
+      const body = payload || {};
+
+      // อ่านข้อมูลด้วย JSONP เพื่อให้ GitHub Pages เรียก Apps Script
+      // ข้ามโดเมนได้โดยไม่ต้องพึ่ง CORS response header
+      if (action === 'getHistory') {
+        return apiJsonp({ action: action }).then(function (result) {
+          if (!result || !result.success) {
+            throw new Error((result && result.message) || 'โหลดข้อมูลไม่สำเร็จ');
+          }
+          return result.data || [];
+        });
+      }
+
+      // งานเขียนใช้ POST แบบ simple request (text/plain) + requestId
+      // เพื่อหลีกเลี่ยง CORS preflight จาก GitHub Pages
+      const requestId = makeRequestId();
+      const requestBody = JSON.stringify({
+        action: action,
+        requestId: requestId,
+        payload: body
+      });
+
+      return fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain;charset=UTF-8'
+        },
+        body: requestBody
+      }).then(function () {
+        return waitForApiResult(requestId);
+      });
+    }
+
+    function makeRequestId() {
+      if (window.crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+
+      return 'req_' + Date.now() + '_' +
+        Math.random().toString(36).slice(2) + '_' +
+        Math.random().toString(36).slice(2);
+    }
+
+    function apiJsonp(params) {
+      return new Promise(function (resolve, reject) {
+        const callbackName = '__bookRegistryApi_' +
+          Date.now() + '_' + Math.random().toString(36).slice(2);
+
+        const script = document.createElement('script');
+        const query = Object.keys(params).map(function (key) {
+          return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+        });
+
+        query.push('prefix=' + encodeURIComponent(callbackName));
+
+        let finished = false;
+        const timer = setTimeout(function () {
+          finish(new Error('API ไม่ตอบกลับภายในเวลาที่กำหนด'));
+        }, 30000);
+
+        function cleanup() {
+          clearTimeout(timer);
+          delete window[callbackName];
+          if (script.parentNode) {
+            script.parentNode.removeChild(script);
+          }
+        }
+
+        function finish(error, data) {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          if (error) reject(error);
+          else resolve(data);
+        }
+
+        window[callbackName] = function (data) {
+          finish(null, data);
+        };
+
+        script.onerror = function () {
+          finish(new Error('ไม่สามารถเชื่อมต่อ Google Apps Script API ได้'));
+        };
+
+        script.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+        document.head.appendChild(script);
+      });
+    }
+
+    function waitForApiResult(requestId) {
+      const startedAt = Date.now();
+      const timeoutMs = 120000;
+
+      return new Promise(function (resolve, reject) {
+        function poll() {
+          if (Date.now() - startedAt > timeoutMs) {
+            reject(new Error('เซิร์ฟเวอร์ใช้เวลานานเกินไป กรุณาตรวจสอบข้อมูลอีกครั้ง'));
+            return;
+          }
+
+          apiJsonp({
+            action: 'getResult',
+            requestId: requestId
+          }).then(function (result) {
+            if (result && result.ready) {
+              if (result.success) {
+                resolve(result.data);
+              } else {
+                reject(new Error(result.message || 'ดำเนินการไม่สำเร็จ'));
+              }
+              return;
+            }
+
+            setTimeout(poll, 900);
+          }).catch(function (error) {
+            reject(error);
+          });
+        }
+
+        poll();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      populateAgencySelect('party');
+      populateAgencySelect('cpParty');
+      populateAgencySelect('editParty');
+
+      setToday('docDate');
+      setToday('cpDocDate');
+
+      bindEvents();
+      updateFiscalYearDisplay(new Date());
+      loadHistory();
+    });
+
+    function bindEvents() {
+      document
+        .getElementById('recordForm')
+        .addEventListener('submit', submitRecord);
+
+      document
+        .getElementById('complaintForm')
+        .addEventListener('submit', submitComplaint);
+
+      document
+        .getElementById('editForm')
+        .addEventListener('submit', submitEdit);
+
+      document
+        .getElementById('attachmentForm')
+        .addEventListener('submit', submitAttachment);
+
+      document
+        .getElementById('postAttachmentFile')
+        .addEventListener('change', function () {
+          const file = this.files[0];
+          document.getElementById('postSelectedFile').textContent =
+            file ? file.name : 'ยังไม่ได้เลือกไฟล์';
+        });
+
+      document
+        .getElementById('cancelForm')
+        .addEventListener('submit', submitCancellation);
+
+      document
+        .getElementById('docDate')
+        .addEventListener('change', function () {
+          updateFiscalYearDisplay(this.value);
+        });
+
+      document
+        .getElementById('srSearchInput')
+        .addEventListener('input', applySendReceiveFilters);
+
+      document
+        .getElementById('srTypeFilter')
+        .addEventListener('change', applySendReceiveFilters);
+
+      document
+        .getElementById('srStatusFilter')
+        .addEventListener('change', applySendReceiveFilters);
+
+      document
+        .getElementById('cpSearchInput')
+        .addEventListener('input', applyComplaintFilters);
+
+      document
+        .getElementById('cpStatusFilter')
+        .addEventListener('change', applyComplaintFilters);
+
+      document
+        .getElementById('attachment')
+        .addEventListener('change', function (event) {
+          handleFileSelection(event, 'selectedFile');
+        });
+
+      document
+        .getElementById('cpAttachment')
+        .addEventListener('change', function (event) {
+          handleFileSelection(event, 'cpSelectedFile');
+        });
+
+      bindPartyToggle('party', 'partyOtherWrap', 'partyOther');
+      bindPartyToggle('cpParty', 'cpPartyOtherWrap', 'cpPartyOther');
+      bindPartyToggle('editParty', 'editPartyOtherWrap', 'editPartyOther');
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          closeModal('editModal');
+          closeModal('cancelModal');
+          closeMenu();
+        }
+      });
+    }
+
+    function computeFiscalYearBE(dateLike) {
+      const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
+
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+
+      const month = date.getMonth() + 1;
+      const yearBE = date.getFullYear() + 543;
+      return month >= 10 ? yearBE + 1 : yearBE;
+    }
+
+    function updateFiscalYearDisplay(dateLike) {
+      const fiscalYear = computeFiscalYearBE(dateLike || new Date());
+      const target = document.getElementById('fiscalYearText');
+
+      if (target && fiscalYear) {
+        target.textContent = fiscalYear;
+      }
+    }
+
+    /* ---------- เมนู ---------- */
+
+    function toggleMenu() {
+      const menu = document.getElementById('sideMenu');
+      const isOpen = menu.classList.contains('open');
+
+      if (isOpen) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    }
+
+    function openMenu() {
+      document.getElementById('sideMenu').classList.add('open');
+      document.getElementById('menuBackdrop').classList.add('show');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeMenu() {
+      document.getElementById('sideMenu').classList.remove('open');
+      document.getElementById('menuBackdrop').classList.remove('show');
+
+      if (!document.querySelector('.modal.show')) {
+        document.body.classList.remove('modal-open');
+      }
+    }
+
+    function switchView(viewName) {
+      currentView = viewName;
+
+      ['overview', 'sendreceive', 'complaint'].forEach(function (name) {
+        const section = document.getElementById('view-' + name);
+
+        if (name === viewName) {
+          section.classList.remove('view-hidden');
+        } else {
+          section.classList.add('view-hidden');
+        }
+      });
+
+      document.querySelectorAll('.menu-item').forEach(function (item) {
+        item.classList.toggle(
+          'active',
+          item.getAttribute('data-view') === viewName
+        );
+      });
+
+      const titles = {
+        overview: {
+          title: 'ระบบทะเบียนหนังสือ',
+          subtitle: 'ภาพรวมของหนังสือรับ–ส่งและเรื่องร้องเรียน'
+        },
+        sendreceive: {
+          title: 'หนังสือรับ–ส่ง',
+          subtitle: 'จัดเก็บ ค้นหา แก้ไข และยกเลิกหนังสือรับ–ส่ง'
+        },
+        complaint: {
+          title: 'เรื่องร้องเรียน',
+          subtitle: 'บันทึกและติดตามเรื่องร้องเรียน'
+        }
+      };
+
+      const meta = titles[viewName] || titles.overview;
+
+      document.getElementById('pageTitle').textContent = meta.title;
+      document.getElementById('pageSubtitle').textContent = meta.subtitle;
+
+      closeMenu();
+    }
+
+    /* ---------- ฟิลด์หน่วยงาน/ภ.จว. (dropdown + อื่นๆ) ---------- */
+
+    function populateAgencySelect(selectId) {
+      const select = document.getElementById(selectId);
+
+      let optionsHtml = '<option value="">เลือกหน่วยงาน/ภ.จว.</option>';
+
+      AGENCY_OPTIONS.forEach(function (agency) {
+        optionsHtml +=
+          '<option value="' +
+          escapeAttribute(agency) +
+          '">' +
+          escapeHtml(agency) +
+          '</option>';
+      });
+
+      optionsHtml += '<option value="' + OTHER_VALUE + '">อื่นๆ (ระบุ)</option>';
+
+      select.innerHTML = optionsHtml;
+    }
+
+    function bindPartyToggle(selectId, wrapId, otherInputId) {
+      const select = document.getElementById(selectId);
+      const wrap = document.getElementById(wrapId);
+      const otherInput = document.getElementById(otherInputId);
+
+      select.addEventListener('change', function () {
+        const isOther = select.value === OTHER_VALUE;
+
+        wrap.classList.toggle('view-hidden', !isOther);
+        otherInput.required = isOther;
+
+        if (!isOther) {
+          otherInput.value = '';
+        }
+      });
+    }
+
+    function getPartyValue(selectId, otherInputId) {
+      const select = document.getElementById(selectId);
+      const otherInput = document.getElementById(otherInputId);
+
+      if (select.value === OTHER_VALUE) {
+        return otherInput.value.trim();
+      }
+
+      return select.value.trim();
+    }
+
+    function setPartySelectValue(selectId, wrapId, otherInputId, value) {
+      const select = document.getElementById(selectId);
+      const wrap = document.getElementById(wrapId);
+      const otherInput = document.getElementById(otherInputId);
+
+      const text = String(value || '');
+      const matchesKnownAgency = AGENCY_OPTIONS.includes(text);
+
+      if (matchesKnownAgency) {
+        select.value = text;
+        wrap.classList.add('view-hidden');
+        otherInput.required = false;
+        otherInput.value = '';
+      } else {
+        select.value = OTHER_VALUE;
+        wrap.classList.remove('view-hidden');
+        otherInput.required = true;
+        otherInput.value = text;
+      }
+    }
+
+    /* ---------- ทั่วไป ---------- */
+
+    function setToday(inputId) {
+      const input = document.getElementById(inputId);
+      const now = new Date();
+
+      const localDate = new Date(
+        now.getTime() - now.getTimezoneOffset() * 60000
+      );
+
+      input.value = localDate.toISOString().slice(0, 10);
+    }
+
+    function handleFileSelection(event, detailId) {
+      const file = event.target.files[0];
+      const detail = document.getElementById(detailId);
+
+      if (!file) {
+        detail.textContent = 'ยังไม่ได้เลือกไฟล์';
+        return;
+      }
+
+      if (file.size > 25 * 1024 * 1024) {
+        event.target.value = '';
+        detail.textContent = 'ยังไม่ได้เลือกไฟล์';
+
+        showToast(
+          'ไฟล์ต้องมีขนาดไม่เกิน 25 MB',
+          'error'
+        );
+
+        return;
+      }
+
+      detail.textContent =
+        file.name + ' (' + formatFileSize(file.size) + ')';
+    }
+
+    function loadHistory() {
+      document.getElementById('srHistoryContent').innerHTML = loadingStateHtml();
+      document.getElementById('cpHistoryContent').innerHTML = loadingStateHtml();
+
+      document.getElementById('srResultSummary').textContent = 'กำลังโหลดข้อมูล';
+      document.getElementById('cpResultSummary').textContent = 'กำลังโหลดข้อมูล';
+
+      document.getElementById('recentList').innerHTML = loadingStateHtml();
+
+      apiRequest('getHistory')
+        .then(function (records) {
+          allRecords = Array.isArray(records) ? records : [];
+
+          allRecords.forEach(function (record, index) {
+            record.uid = index;
+          });
+
+          recordsByUid = {};
+          allRecords.forEach(function (record) {
+            recordsByUid[record.uid] = record;
+          });
+
+          srAllRecords = allRecords.filter(function (record) {
+            return record.type !== 'ร้องเรียน';
+          });
+
+          cpAllRecords = allRecords.filter(function (record) {
+            return record.type === 'ร้องเรียน';
+          });
+
+          updateOverview();
+          applySendReceiveFilters();
+          applyComplaintFilters();
+        })
+        .catch(function (error) {
+          renderLoadError('srHistoryContent', 'srResultSummary', error);
+          renderLoadError('cpHistoryContent', 'cpResultSummary', error);
+          showToast(getErrorMessage(error), 'error');
+        });
+    }
+
+    function loadingStateHtml() {
+      return (
+        '<div class="loading-state">' +
+        '<div class="spinner"></div>' +
+        'กำลังโหลดข้อมูล...' +
+        '</div>'
+      );
+    }
+
+    /* ---------- บันทึกหนังสือรับ-ส่ง ---------- */
+
+    async function submitRecord(event) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const button = document.getElementById('submitButton');
+      const fileInput = document.getElementById('attachment');
+      const file = fileInput.files[0];
+
+      if (!form.reportValidity()) {
+        return;
+      }
+
+      const party = getPartyValue('party', 'partyOther');
+
+      if (!party) {
+        showToast('กรุณาระบุหน่วยงาน/ภ.จว.', 'error');
+        return;
+      }
+
+      setButtonLoading(button, true, 'กำลังบันทึก...');
+
+      try {
+        let fileData = '';
+        let fileName = '';
+
+        if (file) {
+          if (file.size > 25 * 1024 * 1024) {
+            throw new Error('ไฟล์ต้องมีขนาดไม่เกิน 25 MB');
+          }
+
+          fileData = await readFileAsDataUrl(file);
+          fileName = file.name;
+        }
+
+        const formObject = {
+          docType: document.getElementById('docType').value,
+          docDate: document.getElementById('docDate').value,
+          subject: document.getElementById('subject').value.trim(),
+          party: party,
+          note: document.getElementById('note').value.trim(),
+          customFileName:
+            document.getElementById('customFileName').value.trim(),
+          fileData: fileData,
+          fileName: fileName
+        };
+
+        apiRequest('processForm', formObject)
+          .then(function (result) {
+            setButtonLoading(button, false, 'บันทึกรายการ');
+
+            if (!result || !result.success) {
+              showToast('ไม่สามารถบันทึกรายการได้', 'error');
+              return;
+            }
+
+            const message = result.documentNumber
+              ? result.message + ' เลขที่ ' + result.documentNumber
+              : result.message;
+
+            showToast(message, 'success');
+
+            form.reset();
+            resetPartyField('party', 'partyOtherWrap', 'partyOther');
+
+            document.getElementById('selectedFile').textContent =
+              'ยังไม่ได้เลือกไฟล์';
+
+            setToday('docDate');
+            updateFiscalYearDisplay(new Date());
+            loadHistory();
+          })
+          .catch(function (error) {
+            setButtonLoading(button, false, 'บันทึกรายการ');
+            showToast(getErrorMessage(error), 'error');
+          });
+      } catch (error) {
+        setButtonLoading(button, false, 'บันทึกรายการ');
+        showToast(getErrorMessage(error), 'error');
+      }
+    }
+
+    /* ---------- บันทึกเรื่องร้องเรียน ---------- */
+
+    async function submitComplaint(event) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const button = document.getElementById('cpSubmitButton');
+      const fileInput = document.getElementById('cpAttachment');
+      const file = fileInput.files[0];
+
+      if (!form.reportValidity()) {
+        return;
+      }
+
+      const party = getPartyValue('cpParty', 'cpPartyOther');
+
+      if (!party) {
+        showToast('กรุณาระบุหน่วยงาน/ภ.จว.', 'error');
+        return;
+      }
+
+      setButtonLoading(button, true, 'กำลังบันทึก...');
+
+      try {
+        let fileData = '';
+        let fileName = '';
+
+        if (file) {
+          if (file.size > 25 * 1024 * 1024) {
+            throw new Error('ไฟล์ต้องมีขนาดไม่เกิน 25 MB');
+          }
+
+          fileData = await readFileAsDataUrl(file);
+          fileName = file.name;
+        }
+
+        const formObject = {
+          docType: 'ร้องเรียน',
+          controlNumber:
+            document.getElementById('cpControlNumber').value.trim(),
+          docDate: document.getElementById('cpDocDate').value,
+          subject: document.getElementById('cpSubject').value.trim(),
+          party: party,
+          note: document.getElementById('cpNote').value.trim(),
+          customFileName:
+            document.getElementById('cpCustomFileName').value.trim(),
+          fileData: fileData,
+          fileName: fileName
+        };
+
+        apiRequest('processForm', formObject)
+          .then(function (result) {
+            setButtonLoading(button, false, 'บันทึกเรื่องร้องเรียน');
+
+            if (!result || !result.success) {
+              showToast('ไม่สามารถบันทึกรายการได้', 'error');
+              return;
+            }
+
+            showToast(result.message || 'บันทึกรายการเรียบร้อยแล้ว', 'success');
+
+            form.reset();
+            resetPartyField('cpParty', 'cpPartyOtherWrap', 'cpPartyOther');
+
+            document.getElementById('cpSelectedFile').textContent =
+              'ยังไม่ได้เลือกไฟล์';
+
+            setToday('cpDocDate');
+            loadHistory();
+          })
+          .catch(function (error) {
+            setButtonLoading(button, false, 'บันทึกเรื่องร้องเรียน');
+            showToast(getErrorMessage(error), 'error');
+          });
+      } catch (error) {
+        setButtonLoading(button, false, 'บันทึกเรื่องร้องเรียน');
+        showToast(getErrorMessage(error), 'error');
+      }
+    }
+
+    function resetPartyField(selectId, wrapId, otherInputId) {
+      document.getElementById(selectId).value = '';
+      document.getElementById(wrapId).classList.add('view-hidden');
+      document.getElementById(otherInputId).value = '';
+      document.getElementById(otherInputId).required = false;
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+
+        reader.onload = function () {
+          resolve(String(reader.result));
+        };
+
+        reader.onerror = function () {
+          reject(new Error('ไม่สามารถอ่านไฟล์ที่เลือกได้'));
+        };
+
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /* ---------- ตัวกรอง: หนังสือรับ-ส่ง ---------- */
+
+    function applySendReceiveFilters() {
+      const keyword = document
+        .getElementById('srSearchInput')
+        .value.trim()
+        .toLowerCase();
+
+      const selectedType = document.getElementById('srTypeFilter').value;
+      const selectedStatus = document.getElementById('srStatusFilter').value;
+
+      srVisibleRecords = srAllRecords.filter(function (record) {
+        const searchText = buildSearchText(record);
+
+        const matchesKeyword = !keyword || searchText.includes(keyword);
+        const matchesType = !selectedType || record.type === selectedType;
+        const matchesStatus =
+          !selectedStatus || record.status === selectedStatus;
+
+        return matchesKeyword && matchesType && matchesStatus;
+      });
+
+      document.getElementById('srResultSummary').textContent =
+        'แสดง ' +
+        srVisibleRecords.length.toLocaleString('th-TH') +
+        ' จาก ' +
+        srAllRecords.length.toLocaleString('th-TH') +
+        ' รายการ';
+
+      renderSendReceiveHistory();
+    }
+
+    function clearSendReceiveFilters() {
+      document.getElementById('srSearchInput').value = '';
+      document.getElementById('srTypeFilter').value = '';
+      document.getElementById('srStatusFilter').value = '';
+
+      applySendReceiveFilters();
+    }
+
+    /* ---------- ตัวกรอง: เรื่องร้องเรียน ---------- */
+
+    function applyComplaintFilters() {
+      const keyword = document
+        .getElementById('cpSearchInput')
+        .value.trim()
+        .toLowerCase();
+
+      const selectedStatus = document.getElementById('cpStatusFilter').value;
+
+      cpVisibleRecords = cpAllRecords.filter(function (record) {
+        const searchText = buildSearchText(record);
+
+        const matchesKeyword = !keyword || searchText.includes(keyword);
+        const matchesStatus =
+          !selectedStatus || record.status === selectedStatus;
+
+        return matchesKeyword && matchesStatus;
+      });
+
+      document.getElementById('cpResultSummary').textContent =
+        'แสดง ' +
+        cpVisibleRecords.length.toLocaleString('th-TH') +
+        ' จาก ' +
+        cpAllRecords.length.toLocaleString('th-TH') +
+        ' รายการ';
+
+      renderComplaintHistory();
+    }
+
+    function clearComplaintFilters() {
+      document.getElementById('cpSearchInput').value = '';
+      document.getElementById('cpStatusFilter').value = '';
+
+      applyComplaintFilters();
+    }
+
+    function buildSearchText(record) {
+      return [
+        record.createdAt,
+        record.type,
+        record.documentNumber,
+        record.documentDate,
+        record.subject,
+        record.party,
+        record.note,
+        record.status,
+        record.cancelledAt,
+        record.cancelReason
+      ]
+        .join(' ')
+        .toLowerCase();
+    }
+
+    /* ---------- ภาพรวม ---------- */
+
+    function updateOverview() {
+      let received = 0;
+      let sent = 0;
+      let complaint = 0;
+      let cancelled = 0;
+
+      allRecords.forEach(function (record) {
+        if (record.type === 'รับ') {
+          received++;
+        }
+
+        if (record.type === 'ส่ง') {
+          sent++;
+        }
+
+        if (record.type === 'ร้องเรียน') {
+          complaint++;
+        }
+
+        if (record.status === 'ยกเลิก') {
+          cancelled++;
+        }
+      });
+
+      document.getElementById('totalCount').textContent =
+        allRecords.length.toLocaleString('th-TH');
+
+      document.getElementById('receivedCount').textContent =
+        received.toLocaleString('th-TH');
+
+      document.getElementById('sentCount').textContent =
+        sent.toLocaleString('th-TH');
+
+      document.getElementById('complaintCount').textContent =
+        complaint.toLocaleString('th-TH');
+
+      document.getElementById('cancelledCount').textContent =
+        cancelled.toLocaleString('th-TH');
+
+      renderRecentList();
+    }
+
+    function renderRecentList() {
+      const container = document.getElementById('recentList');
+      const recent = allRecords.slice(0, 10);
+
+      if (!recent.length) {
+        container.innerHTML =
+          '<div class="empty-state">' +
+          '<div class="state-icon">🗂️</div>' +
+          '<div class="state-title">ยังไม่มีข้อมูล</div>' +
+          '</div>';
+        return;
+      }
+
+      container.innerHTML = recent
+        .map(function (record) {
+          const badge = getTypeBadge(record.type);
+
+          return (
+            '<div class="recent-item">' +
+            '<div class="recent-item-main">' +
+            '<div class="recent-item-title">' +
+            escapeHtml(record.subject || '-') +
+            '</div>' +
+            '<div class="recent-item-sub">' +
+            escapeHtml(record.documentNumber || '-') +
+            ' &middot; ' +
+            escapeHtml(record.party || '-') +
+            '</div>' +
+            '</div>' +
+            '<span class="badge ' +
+            badge +
+            '">' +
+            escapeHtml(record.type || '-') +
+            '</span>' +
+            '</div>'
+          );
+        })
+        .join('');
+    }
+
+    /* ---------- ตารางประวัติ: หนังสือรับ-ส่ง ---------- */
+
+    function renderSendReceiveHistory() {
+      renderHistoryTable(
+        'srHistoryContent',
+        srVisibleRecords,
+        'เลขที่หนังสือ'
+      );
+    }
+
+    /* ---------- ตารางประวัติ: เรื่องร้องเรียน ---------- */
+
+    function renderComplaintHistory() {
+      renderHistoryTable(
+        'cpHistoryContent',
+        cpVisibleRecords,
+        'เลขคุม'
+      );
+    }
+
+    function renderHistoryTable(containerId, records, numberLabel) {
+      const container = document.getElementById(containerId);
+
+      if (!records.length) {
+        container.innerHTML =
+          '<div class="empty-state">' +
+          '<div class="state-icon">🗂️</div>' +
+          '<div class="state-title">ไม่พบข้อมูล</div>' +
+          '<div>ลองเปลี่ยนคำค้นหาหรือตัวกรอง</div>' +
+          '</div>';
+        return;
+      }
+
+      const rows = records
+        .map(function (record) {
+          const typeBadge = getTypeBadge(record.type);
+          const isCancelled = record.status === 'ยกเลิก';
+
+          const statusHtml = isCancelled
+            ? '<span class="badge badge-cancelled">ยกเลิกแล้ว</span>' +
+              '<div class="cancel-detail">' +
+              escapeHtml(record.cancelledAt || '') +
+              (record.cancelReason
+                ? '<br>เหตุผล: ' + escapeHtml(record.cancelReason)
+                : '') +
+              '</div>'
+            : '<span class="badge badge-active">ใช้งาน</span>';
+
+          const actions = createActions(record);
+
+          return (
+            '<tr class="' +
+            (isCancelled ? 'cancelled-row' : '') +
+            '">' +
+            '<td data-label="ประเภท"><span class="badge ' +
+            typeBadge +
+            '">' +
+            escapeHtml(record.type || '-') +
+            '</span></td>' +
+            '<td data-label="สถานะ">' +
+            statusHtml +
+            '</td>' +
+            '<td data-label="วันที่บันทึก">' +
+            escapeHtml(record.createdAt || '-') +
+            '</td>' +
+            '<td data-label="' +
+            numberLabel +
+            '"><div class="document-number">' +
+            escapeHtml(record.documentNumber || '-') +
+            '</div><div class="subtext">ลงวันที่ ' +
+            escapeHtml(record.documentDate || '-') +
+            '</div><div class="subtext">ปีงบประมาณ ' +
+            escapeHtml(record.fiscalYear || '-') +
+            '</div></td>' +
+            '<td data-label="เรื่อง"><div class="subject">' +
+            escapeHtml(record.subject || '-') +
+            '</div><div class="subtext">' +
+            escapeHtml(record.note || 'ไม่มีหมายเหตุ') +
+            '</div></td>' +
+            '<td data-label="หน่วยงาน/ภ.จว.">' +
+            escapeHtml(record.party || '-') +
+            '</td>' +
+            '<td data-label="ไฟล์แนบ">' +
+            createFileLink(record.fileUrl) +
+            '</td>' +
+            '<td data-label="จัดการ">' +
+            actions +
+            '</td>' +
+            '</tr>'
+          );
+        })
+        .join('');
+
+      container.innerHTML =
+        '<div class="table-wrap"><table><thead><tr>' +
+        '<th>ประเภท</th><th>สถานะ</th><th>วันที่บันทึก</th>' +
+        '<th>' +
+        numberLabel +
+        '</th><th>เรื่อง</th><th>หน่วยงาน/ภ.จว.</th>' +
+        '<th>ไฟล์</th><th>จัดการ</th>' +
+        '</tr></thead><tbody>' +
+        rows +
+        '</tbody></table></div>';
+    }
+
+    function getTypeBadge(type) {
+      if (type === 'รับ') {
+        return 'badge-received';
+      }
+
+      if (type === 'ส่ง') {
+        return 'badge-sent';
+      }
+
+      if (type === 'ร้องเรียน') {
+        return 'badge-complaint';
+      }
+
+      return 'badge-old';
+    }
+
+    function createActions(record) {
+      if (record.status === 'ยกเลิก') {
+        return '<span class="no-file">ปิดรายการแล้ว</span>';
+      }
+
+      if (!record.canEdit && !record.canCancel) {
+        return '<span class="no-file">ดูข้อมูลเท่านั้น</span>';
+      }
+
+      let actionsHtml = '<div class="action-group">';
+
+      if (record.canEdit) {
+        actionsHtml +=
+          '<button type="button" class="btn btn-secondary btn-small" ' +
+          'onclick="openEditModal(' +
+          record.uid +
+          ')">แก้ไข</button>';
+      }
+
+      if (record.status !== 'ยกเลิก' && record.canEdit) {
+        actionsHtml +=
+          '<button type="button" class="btn btn-secondary btn-small" ' +
+          'onclick="openAttachmentModal(' +
+          record.uid +
+          ')">แนบไฟล์</button>';
+      }
+
+      if (record.canCancel) {
+        actionsHtml +=
+          '<button type="button" class="btn btn-danger btn-small" ' +
+          'onclick="openCancelModal(' +
+          record.uid +
+          ')">ยกเลิก</button>';
+      }
+
+      actionsHtml += '</div>';
+
+      return actionsHtml;
+    }
+
+    function createFileLink(value) {
+      const url = String(value || '').trim();
+
+      if (!url) {
+        return '<span class="no-file">ไม่มีไฟล์</span>';
+      }
+
+      if (!/^https?:\/\//i.test(url)) {
+        return escapeHtml(url);
+      }
+
+      return (
+        '<a class="file-link" href="' +
+        escapeAttribute(url) +
+        '" target="_blank" rel="noopener noreferrer">เปิดไฟล์ ↗</a>'
+      );
+    }
+
+    /* ---------- แก้ไข / ยกเลิก (ใช้ร่วมกันทั้งรับ-ส่งและร้องเรียน) ---------- */
+
+    function openEditModal(uid) {
+      const record = recordsByUid[uid];
+
+      if (!record) {
+        showToast('ไม่พบรายการที่เลือก', 'error');
+        return;
+      }
+
+      if (record.status === 'ยกเลิก' || !record.canEdit) {
+        showToast('รายการนี้ไม่สามารถแก้ไขได้', 'error');
+        return;
+      }
+
+      document.getElementById('editSheetName').value = record.sheetName;
+      document.getElementById('editRowIndex').value = record.rowIndex;
+      document.getElementById('editSubject').value = record.subject || '';
+
+      setPartySelectValue(
+        'editParty',
+        'editPartyOtherWrap',
+        'editPartyOther',
+        record.party || ''
+      );
+
+      document.getElementById('editNote').value = record.note || '';
+
+      document.getElementById('editDocumentDetail').textContent =
+        (record.type === 'ร้องเรียน' ? 'เลขคุม ' : 'เลขที่หนังสือ ') +
+        (record.documentNumber || '-');
+
+      showModal('editModal');
+    }
+
+    function submitEdit(event) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const button = document.getElementById('editButton');
+
+      if (!form.reportValidity()) {
+        return;
+      }
+
+      const party = getPartyValue('editParty', 'editPartyOther');
+
+      if (!party) {
+        showToast('กรุณาระบุหน่วยงาน/ภ.จว.', 'error');
+        return;
+      }
+
+      const updateObject = {
+        sheetName: document.getElementById('editSheetName').value,
+        rowIndex: Number(document.getElementById('editRowIndex').value),
+        subject: document.getElementById('editSubject').value.trim(),
+        party: party,
+        note: document.getElementById('editNote').value.trim()
+      };
+
+      setButtonLoading(button, true, 'กำลังบันทึก...');
+
+      apiRequest('updateRecord', updateObject)
+        .then(function (result) {
+          setButtonLoading(button, false, 'บันทึกการแก้ไข');
+          closeModal('editModal');
+
+          showToast(
+            result.message || 'แก้ไขข้อมูลเรียบร้อยแล้ว',
+            'success'
+          );
+
+          loadHistory();
+        })
+        .catch(function (error) {
+          setButtonLoading(button, false, 'บันทึกการแก้ไข');
+          showToast(getErrorMessage(error), 'error');
+        });
+    }
+
+    function openAttachmentModal(uid) {
+      const record = recordsByUid[uid];
+      if (!record) { showToast('ไม่พบรายการที่เลือก', 'error'); return; }
+      if (record.status === 'ยกเลิก' || !record.canEdit) { showToast('รายการนี้ไม่สามารถแนบไฟล์ได้', 'error'); return; }
+
+      document.getElementById('attachmentSheetName').value = record.sheetName;
+      document.getElementById('attachmentRowIndex').value = record.rowIndex;
+      document.getElementById('postAttachmentFile').value = '';
+      document.getElementById('postSelectedFile').textContent = 'ยังไม่ได้เลือกไฟล์';
+      document.getElementById('postAttachmentName').value = '';
+      document.getElementById('attachmentDocumentDetail').textContent =
+        (record.type === 'ร้องเรียน' ? 'เลขคุม ' : 'เลขที่หนังสือ ') +
+        (record.documentNumber || '-') + ' — ปีงบประมาณ ' + (record.fiscalYear || '-');
+      showModal('attachmentModal');
+    }
+
+    async function submitAttachment(event) {
+      event.preventDefault();
+      const button = document.getElementById('attachmentButton');
+      const fileInput = document.getElementById('postAttachmentFile');
+      const file = fileInput.files[0];
+      if (!file) { showToast('กรุณาเลือกไฟล์', 'error'); return; }
+      if (file.size > 25 * 1024 * 1024) { showToast('ไฟล์ต้องมีขนาดไม่เกิน 25 MB', 'error'); return; }
+      setButtonLoading(button, true, 'กำลังอัปโหลด...');
+      try {
+        const fileData = await readFileAsDataUrl(file);
+        const payload = {
+          sheetName: document.getElementById('attachmentSheetName').value,
+          rowIndex: Number(document.getElementById('attachmentRowIndex').value),
+          fileData: fileData,
+          fileName: file.name,
+          customFileName: document.getElementById('postAttachmentName').value.trim()
+        };
+        apiRequest('attachFile', payload)
+          .then(function (result) {
+            setButtonLoading(button, false, 'บันทึกไฟล์');
+            closeModal('attachmentModal');
+            showToast((result && result.message) || 'แนบไฟล์เรียบร้อยแล้ว', 'success');
+            loadHistory();
+          })
+          .catch(function (error) {
+            setButtonLoading(button, false, 'บันทึกไฟล์');
+            showToast(getErrorMessage(error), 'error');
+          });
+      } catch (error) {
+        setButtonLoading(button, false, 'บันทึกไฟล์');
+        showToast(getErrorMessage(error), 'error');
+      }
+    }
+
+    function openCancelModal(uid) {
+      const record = recordsByUid[uid];
+
+      if (!record) {
+        showToast('ไม่พบรายการที่เลือก', 'error');
+        return;
+      }
+
+      if (record.status === 'ยกเลิก' || !record.canCancel) {
+        showToast('รายการนี้ไม่สามารถยกเลิกได้', 'error');
+        return;
+      }
+
+      document.getElementById('cancelSheetName').value = record.sheetName;
+      document.getElementById('cancelRowIndex').value = record.rowIndex;
+      document.getElementById('cancelReason').value = '';
+
+      document.getElementById('cancelDocumentDetail').textContent =
+        (record.documentNumber || '-') + ' — ' + (record.subject || '');
+
+      showModal('cancelModal');
+
+      setTimeout(function () {
+        document.getElementById('cancelReason').focus();
+      }, 100);
+    }
+
+    function submitCancellation(event) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const button = document.getElementById('cancelButton');
+
+      if (!form.reportValidity()) {
+        return;
+      }
+
+      const cancellationObject = {
+        sheetName: document.getElementById('cancelSheetName').value,
+        rowIndex: Number(document.getElementById('cancelRowIndex').value),
+        reason: document.getElementById('cancelReason').value.trim()
+      };
+
+      setButtonLoading(button, true, 'กำลังยกเลิก...');
+
+      apiRequest('cancelRecord', cancellationObject)
+        .then(function (result) {
+          setButtonLoading(button, false, 'ยืนยันการยกเลิก');
+          closeModal('cancelModal');
+
+          showToast(
+            result.message || 'ยกเลิกรายการเรียบร้อยแล้ว',
+            'success'
+          );
+
+          loadHistory();
+        })
+        .catch(function (error) {
+          setButtonLoading(button, false, 'ยืนยันการยกเลิก');
+          showToast(getErrorMessage(error), 'error');
+        });
+    }
+
+    function showModal(modalId) {
+      document.getElementById(modalId).classList.add('show');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+
+      if (modal) {
+        modal.classList.remove('show');
+      }
+
+      const hasOpenModal = document.querySelector('.modal.show');
+      const menuOpen = document.getElementById('sideMenu').classList.contains('open');
+
+      if (!hasOpenModal && !menuOpen) {
+        document.body.classList.remove('modal-open');
+      }
+    }
+
+    function handleModalBackdrop(event, modalId) {
+      if (event.target.id === modalId) {
+        closeModal(modalId);
+      }
+    }
+
+    function renderLoadError(containerId, summaryId, error) {
+      document.getElementById(summaryId).textContent = 'โหลดข้อมูลไม่สำเร็จ';
+
+      document.getElementById(containerId).innerHTML =
+        '<div class="empty-state">' +
+        '<div class="state-icon">⚠️</div>' +
+        '<div class="state-title">ไม่สามารถโหลดข้อมูลได้</div>' +
+        '<div>' +
+        escapeHtml(getErrorMessage(error)) +
+        '</div><br>' +
+        '<button type="button" class="btn btn-primary btn-small" ' +
+        'onclick="loadHistory()">ลองใหม่</button>' +
+        '</div>';
+    }
+
+    function setButtonLoading(button, loading, text) {
+      button.disabled = loading;
+      button.textContent = text;
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) {
+        return '0 KB';
+      }
+
+      const units = ['B', 'KB', 'MB', 'GB'];
+
+      const index = Math.min(
+        Math.floor(Math.log(bytes) / Math.log(1024)),
+        units.length - 1
+      );
+
+      const size = bytes / Math.pow(1024, index);
+
+      return size.toFixed(index === 0 ? 0 : 1) + ' ' + units[index];
+    }
+
+    function showToast(message, type) {
+      const toast = document.getElementById('toast');
+
+      toast.textContent = message || 'ดำเนินการเรียบร้อยแล้ว';
+      toast.className = 'toast ' + (type || '') + ' show';
+
+      clearTimeout(window.toastTimer);
+
+      window.toastTimer = setTimeout(function () {
+        toast.classList.remove('show');
+      }, 3800);
+    }
+
+    function getErrorMessage(error) {
+      if (!error) {
+        return 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
+      }
+
+      return error.message || String(error);
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value).replaceAll('`', '&#096;');
+    }
+  </script>
+</body>
+</html>
