@@ -1527,6 +1527,21 @@
       .stat-value { font-size: 35px; }
       .stat-card { padding: 15px 11px; }
     }
+
+    /* แก้ปัญหาฟิลด์และ modal ล้นจอในมือถือ */
+    input, select, textarea, .control {
+      max-width: 100%;
+      box-sizing: border-box;
+      word-wrap: break-word;
+    }
+    .form-grid, .field {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    .modal-card {
+      max-width: calc(100vw - 20px);
+      overflow-x: hidden;
+    }
   </style>
 </head>
 
@@ -2801,44 +2816,71 @@
     }
 
     function loadHistory() {
-      document.getElementById('srHistoryContent').innerHTML = loadingStateHtml();
-      document.getElementById('cpHistoryContent').innerHTML = loadingStateHtml();
+      // อ่านข้อมูลจาก LocalStorage (SWR) ถ้ามีให้นำมาแสดงผลทันที
+      const cachedData = localStorage.getItem('bookRegistryHistoryCache');
+      if (cachedData) {
+        try {
+          const records = JSON.parse(cachedData);
+          processRecordsAndRender(records);
+        } catch (e) {
+          console.warn('Cache parsing error:', e);
+          showLoadingState();
+        }
+      } else {
+        showLoadingState();
+      }
 
-      document.getElementById('srResultSummary').textContent = 'กำลังโหลดข้อมูล';
-      document.getElementById('cpResultSummary').textContent = 'กำลังโหลดข้อมูล';
-
-      document.getElementById('recentList').innerHTML = loadingStateHtml();
-
+      // ส่ง Request ไปอัปเดตข้อมูลชุดล่าสุดจาก Backend แบบ Background
       apiRequest('getHistory')
         .then(function (records) {
-          allRecords = Array.isArray(records) ? records : [];
-
-          allRecords.forEach(function (record, index) {
-            record.uid = index;
-          });
-
-          recordsByUid = {};
-          allRecords.forEach(function (record) {
-            recordsByUid[record.uid] = record;
-          });
-
-          srAllRecords = allRecords.filter(function (record) {
-            return record.type !== 'ร้องเรียน';
-          });
-
-          cpAllRecords = allRecords.filter(function (record) {
-            return record.type === 'ร้องเรียน';
-          });
-
-          updateOverview();
-          applySendReceiveFilters();
-          applyComplaintFilters();
+          // เมื่อได้ข้อมูลใหม่มา ให้บันทึกทับลง LocalStorage ทันที
+          localStorage.setItem('bookRegistryHistoryCache', JSON.stringify(records));
+          // เรนเดอร์หน้าจอใหม่ด้วยข้อมูลล่าสุด
+          processRecordsAndRender(records);
         })
         .catch(function (error) {
-          renderLoadError('srHistoryContent', 'srResultSummary', error);
-          renderLoadError('cpHistoryContent', 'cpResultSummary', error);
-          showToast(getErrorMessage(error), 'error');
+          if (!cachedData) {
+            // โชว์ Error เฉพาะกรณีที่ไม่มีแคชและดึงข้อมูลใหม่ไม่สำเร็จ
+            renderLoadError('srHistoryContent', 'srResultSummary', error);
+            renderLoadError('cpHistoryContent', 'cpResultSummary', error);
+            showToast(getErrorMessage(error), 'error');
+          } else {
+            showToast('อัปเดตข้อมูลล้มเหลว แสดงข้อมูลล่าสุดที่มีในเครื่อง', 'error');
+          }
         });
+    }
+
+    function showLoadingState() {
+      document.getElementById('srHistoryContent').innerHTML = loadingStateHtml();
+      document.getElementById('cpHistoryContent').innerHTML = loadingStateHtml();
+      document.getElementById('srResultSummary').textContent = 'กำลังโหลดข้อมูล';
+      document.getElementById('cpResultSummary').textContent = 'กำลังโหลดข้อมูล';
+      document.getElementById('recentList').innerHTML = loadingStateHtml();
+    }
+
+    function processRecordsAndRender(records) {
+      allRecords = Array.isArray(records) ? records : [];
+
+      allRecords.forEach(function (record, index) {
+        record.uid = index;
+      });
+
+      recordsByUid = {};
+      allRecords.forEach(function (record) {
+        recordsByUid[record.uid] = record;
+      });
+
+      srAllRecords = allRecords.filter(function (record) {
+        return record.type !== 'ร้องเรียน';
+      });
+
+      cpAllRecords = allRecords.filter(function (record) {
+        return record.type === 'ร้องเรียน';
+      });
+
+      updateOverview();
+      applySendReceiveFilters();
+      applyComplaintFilters();
     }
 
     function loadingStateHtml() {
